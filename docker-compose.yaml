@@ -19,12 +19,10 @@ services:
       POSTGRES_DB: "${POSTGRES_DB}"
       POSTGRES_USER: "${POSTGRES_USER}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      PGDATA: "/var/lib/postgresql/data/pgdata"
 
     ports:
       - 5432:5432
-
-    networks:
-      - postgres
 
   pgadmin:
     container_name: pgadmin
@@ -43,9 +41,17 @@ services:
         limits:
           cpus: '0.5'
           memory: 1G
-    networks:
-      - postgres
 
-networks:
-  postgres:
-    driver: bridge
+  web:
+    build: ./webapi
+    command: uvicorn app.main:app --reload --workers 1 --host 0.0.0.0 --port 8000
+    volumes:
+      - ./webapi:/usr/src/app
+    ports:
+      - 8004:8000
+    environment:
+      ENVIRONMENT: dev
+      TESTING: 0
+      DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@storage:5432/test_storage"
+    depends_on:
+      - storage
